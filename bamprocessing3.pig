@@ -1,8 +1,10 @@
 BAM = load '$bam' using fi.aalto.seqpig.io.BamLoader('yes');
-define regionHitIns myudf.RegionHit('$rlist');
+define regionHitIns fi.aalto.seqpig.RegionHit('$rlist');
 
 BAM_IN = foreach BAM generate FLATTEN(regionHitIns(refname,start,end)),read, flags, refname,start, cigar, basequal;
+BAM_IN_F = filter BAM_IN by $0 is not null;
 BAMG = group BAM_IN by ($0,$1,$2);
+
 
 BED = load '$bed' using PigStorage('\t') as (chrname:chararray,startindex:int,endindex:int);
 BEDG = foreach BED generate chrname,endindex-$window,endindex+$window-1;

@@ -7,14 +7,15 @@ from subprocess import call
 import sys
 import os
 
+home = "/homeappl/home/dongelr1/"
 
-pig_home="/homeappl/home/dongelr1/pig-0.12.1/"
-hadoo_home ="/homeappl/home/dongelr1/hadoop-2.2.0/"
-seqpig_home = "/homeappl/home/dongelr1/SeqPig/"
+pig_home= home+"pig-0.12.1/"
+hadoo_home = home+"hadoop-2.2.0/"
+seqpig_home = home+"SeqPig/"
 
-data_home_local = "/homeappl/home/dongelr1/data/share.ics.aalto.fi/project/csb/mpirttin/SeqPig/"
+data_home_local = home+"data/share.ics.aalto.fi/project/csb/mpirttin/SeqPig/"
 data_home = ""
-bed_local = "/homeappl/home/dongelr1/data/share.ics.aalto.fi/project/csb/mpirttin/SeqPig/GR_Enhancers.bed"
+bed_local = home+"data/share.ics.aalto.fi/project/csb/mpirttin/SeqPig/GR_Enhancers.bed"
 bed = "GR_Enhancers.bed"
 
 local = False
@@ -69,8 +70,9 @@ rlist = "";
  
 iterator = bedresult.result("BED").iterator()
 while iterator.hasNext():
-    value = str(iterator.next().get(0))
-    endindex = int(str(iterator.next().get(2)))
+    line = iterator.next();
+    value = str(line.get(0))
+    endindex = int(str(line.get(2)))
     rlist += value+":"+str(endindex-window)+"-"+str(endindex+window-1)+","
     if value not in chrms:
         chrms.add(value)
