@@ -20,14 +20,13 @@ bed = "GR_Enhancers.bed"
 
 local = False
 
-jars = [seqpig_home+"lib/gephi-toolkit.jar",
-        seqpig_home+"lib/sam-1.107.jar",
+jars = [seqpig_home+"lib/sam-1.107.jar",
         seqpig_home+"lib/tribble-1.107.jar",
         seqpig_home+"lib/hadoop-bam-6.2.0-SNAPSHOT.jar",
         seqpig_home+"lib/seal.jar",
         seqpig_home+"lib/picard-1.107.jar",
         seqpig_home+"lib/variant-1.107.jar",
-        pig_home+"contrib/piggybank.jar",
+        pig_home+"contrib/piggybank/java/piggybank.jar",
         seqpig_home+"build/jar/SeqPig.jar",
         seqpig_home+"lib/datafu-1.2.0.jar",
         seqpig_home+"lib/commons-logging-1.1.1.jar",
@@ -38,6 +37,8 @@ udfs = ["fi.aalto.seqpig","fi.aalto.seqpig.io","fi.aalto.seqpig.filter","fi.aalt
 
 window = 5000
 bedtemp = "bedtemp"
+start = datetime.now()
+print(start)
 
 #os.system(["hadoop fs -rmr "+bedtemp])
 try:
@@ -56,10 +57,17 @@ except:
 	e = sys.exc_info()[0]
 	print( "<p>Error: %s</p>" % e )
  
- 
- 
-start = datetime.now()
-print(start)
+try:
+	os.system([hadoo_home+"/bin/hadoop fs -rmr"+" "+ data_home])
+except:
+	e = sys.exc_info()[0]
+	print( "<p>Error: %s</p>" % e )
+	
+os.system([hadoo_home+"/bin/hadoop distcp file:///"+data_home_local+" hdfs:///user/dongelr1/"])
+
+scriptstart = datetime.now()
+print(scriptstart) 
+
 P = Pig.compileFromFile("bedtoregionlist3.pig")
 Q = P.bind({'bed':bed, 'output':bedtemp})
  
@@ -99,31 +107,11 @@ data = ['wgEncodeBroadHistoneK562ControlStdRawData',
         'DNase-seq/bam_format',
         'NucleosomeSYDH/bam_format']
 
-if not local:
-	for f in data:
-		os.system([hadoo_home+"/bin/hadoop fs -mkdir -p"+" "+f])
-		os.system([hadoo_home+"/bin/hadoop fs -copyFromLocal "+data_home_local+"/"+f+" "+f])
 	
 chromfiles = "{"+(",".join(chrms))+"}.sorted.bam"
  
 bindparam = []
 for dataset in data:
-    try:
-    	if(local):
-    		shutil.rmtree(data_home+dataset+'.matrix')
-    	else:
-    		os.system([hadoo_home+"/bin/hadoop fs -rmr"+" "+ data_home+dataset+'.matrix'])
-    except:
-    	e = sys.exc_info()[0]
-    	print( "<p>Error: %s</p>" % e )
-    try:
-    	if(local):
-    		shutil.rmtree(data_home+dataset+'.matrix.count')
-    	else:
-    		os.system([hadoo_home+"/bin/hadoop fs -rmr"+" "+ data_home+dataset+'.matrix.count'])
-    except:
-    	e = sys.exc_info()[0]
-    	print( "<p>Error: %s</p>" % e )
     bindparam.append({'bam':(data_home+dataset+'/'+chromfiles),
                    'rlist':rlist, 'bed':bed, 'window':window,
                    'output':(data_home+dataset+'.matrix')})
@@ -133,8 +121,11 @@ for jar in jars:
 # for udf in udfs:
 #     Pig.registerUDF("",udf)
 P2 = Pig.compileFromFile("bamprocessing3.pig")
-Q2 = P2.bind(bindparam[0:3])
+Q2 = P2.bind(bindparam)
 bamresult =Q2.run()
 end = datetime.now()
 # 
-print(end-start)
+print("total time: " + str(end-start))
+print("script time: " + str(end-scriptstart))
+print("finishing the task... ")
+os.system(['scancel $(squeue -u $USER -o %A | grep -v JOBID)'])
